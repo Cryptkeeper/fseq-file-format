@@ -3,13 +3,16 @@ A work-in-progress decoding and documentation of the *version 2* FSEQ (`.fseq`, 
 
 While documentation for sister formats or previous versions (such as ESEQ, PSEQ or FSEQ version 1) will be eventually added, they are currently undocumented. Until then, this documentation should assist the brave in decoding them manually.
 
+## Encoding
+FSEQ files are encoded in [little-endian](https://en.wikipedia.org/wiki/Endianness) format.
+
 ## Header
 Length is 32 bytes.
 
 | Byte Index | Data Type | Field Name | Notes |
 | --- | --- | --- | --- |
 | 0 | `[4]uint8` | Identifier | Always `FSEQ`* |
-| 4 | `uint16` | Channel Data Offset | |
+| 4 | `uint16` | Channel Data Offset | Byte index of the channel data portion of the file |
 | 6 | `uint8` | Minor Version | Currently `0x00` |
 | 7 | `uint8` | Major Version | Currently `0x02` |
 | 8 | `uint16` | Header Length | Length of the header (32 bytes) + `Frame Block Count` * length of a `Frame Block` (8 bytes) |
