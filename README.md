@@ -6,7 +6,8 @@ While documentation for sister formats or previous versions (such as ESEQ, PSEQ 
 ## Encoding
 FSEQ files are encoded in [little-endian](https://en.wikipedia.org/wiki/Endianness) format.
 
-## Header
+## Structure
+### Header
 Length is 32 bytes.
 
 | Byte Index | Data Type | Field Name | Notes |
@@ -28,7 +29,7 @@ Length is 32 bytes.
 
 *`FSEQ` and `PSEQ` appear to be interchangable versions of the same file format. However, their structures may differ according to their major or minor version fields.
 
-## Data
+### Data
 Variable length, determined by `Header->Channel Data Offset` - length of `Header` (32 bytes).
 
 | Data Type | Corresponding Count Field |
@@ -43,7 +44,7 @@ If (after reading all fields) the current reader index is less than the `Header-
 
 Both of these implementation details appear to stem from the [rounding behavior](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1433) for the `Channel Data Offset`.
 
-### Frame Block
+#### Frame Block
 Length is 8 bytes.
 
 | Byte Index | Data Type | Field Name | Notes |
@@ -51,7 +52,7 @@ Length is 8 bytes.
 | 0 | `uint32` | Frame | |
 | 4 | `uint32` | Length | |
 
-### Sparse Range
+#### Sparse Range
 Length is 6 bytes.
 
 | Byte Index | Data Type | Field Name |
@@ -59,10 +60,10 @@ Length is 6 bytes.
 | 0 | `uint24` | Start Channel |
 | 3 | `uint24` | End Channel Offset |
 
-#### Example
+##### Example
 To denote channels 16-32, `Start Channel` would have a value of 15 (16 - 1 since channel indexes start at 0) and an `End Channel Offset` of 16 (32 - 16 = 16).
 
-### Variable
+#### Variable
 Variable length, at least 4 bytes.
 
 | Byte Index | Data Type | Field Name | Notes |
@@ -73,17 +74,23 @@ Variable length, at least 4 bytes.
 
 While effectively useless, the [fpp](https://github.com/FalconChristmas/fpp) implementation seems to support zero length variables. However when reading it skips forward 4 bytes, ignoring the code field and resulting in a variable named "NULNUL" (`[0x00, 0x00]`).
 
-#### Common Variable Codes
-| Bytes | Code | Name | Notes |
+##### Common Variable Codes
+| Bytes | Code | Name | Description |
 | --- | --- | --- | --- |
 | `[0x6D, 0x66]` | `mf` | Media File | File path of the audio to play |
 | `[0x73, 0x70]` | `sp` | Sequencing Program | Identifies the program used to create the sequence |
 
-#### Example
-The variable `mf` (Media File) with a value of "xy" would be encoded in 6 bytes as `[0x00, 0x06, 0x6D, 0x66, 0x78, 0x79]`.
+xLights sample 
 
-| Bytes | Purpose |
+##### Example
+The variable `mf` (Media File) with a value of "xy" would be encoded in 6 bytes.
+
+| Bytes | Description |
 | --- | --- |
 | `[0x00, 0x06]` | 6 byte length (2 bytes of data + 4 byte header) |
 | `[0x6D, 0x66]` | 2 byte code (`mf`) |
 | `[0x78, 0x79]` | 2 bytes of data ("xy") |
+
+## Reference Implementations
+* [fpp](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp) is a C++ implementation of the FSEQ file format. It is the project which also originated the file format and maintains it.
+* [xLights](https://github.com/smeighan/xLights/blob/master/xLights/FSEQFile.cpp) is a C++ sequencing program which uses the FSEQ file format. However, its implementation is a copy/paste of the fpp code and provides no additional context.
