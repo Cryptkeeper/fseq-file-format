@@ -1,7 +1,9 @@
 # FSEQ File Format
-A work-in-progress decoding and documentation of the *version 2* FSEQ (`.fseq`, "Falcon sequence") file format, derived from the [Falcon Player/fpp](https://github.com/FalconChristmas/fpp) software implementation and its usage in [xLights](https://github.com/smeighan/xLights). FSEQ is a time series file format used to describe channel output states, typically for controlling lighting equipment.
+A work-in-progress decoding and documentation of the *version 2* FSEQ (`.fseq`) "Falcon sequence" file format, derived from the [Falcon Player](https://github.com/FalconChristmas/fpp)  ("fpp") software implementation and its usage in [xLights](https://github.com/smeighan/xLights). FSEQ is a time series file format used to describe channel output states, typically for controlling lighting equipment.
 
-While documentation for sister formats or previous versions (such as ESEQ, PSEQ or FSEQ version 1) will be eventually added, they are currently undocumented. Until then, this documentation should assist the brave in decoding them manually.
+Some additional documentation (while sparse) concerning the file format, as well as its sister format [ESEQ](https://github.com/FalconChristmas/fpp/blob/master/docs/ESEQ_Effect_Sequence_file_format.txt), is available in the [fpp repository](https://github.com/FalconChristmas/fpp/blob/master/docs/FSEQ_Sequence_File_Format.txt).
+
+Given the reverse engineered nature, this documentation should be considered incomplete, incorrect and outdated.
 
 ## Encoding
 FSEQ files are encoded in [little-endian](https://en.wikipedia.org/wiki/Endianness) format.
@@ -12,22 +14,20 @@ Length is 32 bytes.
 
 | Byte Index | Data Type | Field Name | Notes |
 | --- | --- | --- | --- |
-| 0 | `[4]uint8` | Identifier | Always `FSEQ`* |
+| 0 | `[4]uint8` | Identifier | Always `PSEQ` (older encodings may contain `FSEQ`) |
 | 4 | `uint16` | Channel Data Offset | Byte index of the channel data portion of the file |
 | 6 | `uint8` | Minor Version | Currently `0x00` |
 | 7 | `uint8` | Major Version | Currently `0x02` |
 | 8 | `uint16` | Header Length | Length of the header (32 bytes) + `Frame Block Count` * length of a `Frame Block` (8 bytes) |
-| 10 | `uint32` | Channel Count | |
+| 10 | `uint32` | Channel Count | Sum of `Sparse Range` lengths |
 | 14 | `uint32` | Frame Count | |
 | 18 | `uint8` | Step Time | Timing interval in milliseconds |
-| 19 | `uint8` | Flags | Unused by the [fpp](https://github.com/FalconChristmas/fpp) & [xLights](https://github.com/smeighan/xLights) implementation |
+| 19 | `uint8` | Flags | Unused by the [fpp](https://github.com/FalconChristmas/fpp) & [xLights](https://github.com/smeighan/xLights) implementations |
 | 20 | `uint8` | Compression Type | 0 = none, 1 = [zstd](https://github.com/facebook/zstd), 2 = [zlib](https://www.zlib.net/) |
 | 21 | `uint8` | Frame Block Count | Ignored if `Compression Type` = 0 |
 | 22 | `uint8` | Sparse Range Count | |
 | 23 | `uint8` | | (Reserved for future use) |
 | 24 | `uint64` | Unique ID | Implemented as the creation time in microseconds |
-
-*`FSEQ` and `PSEQ` appear to be interchangable versions of the same file format. However, their structures may differ according to their major or minor version fields.
 
 ### Data
 Variable length, determined by `Header->Channel Data Offset` - length of `Header` (32 bytes).
@@ -60,6 +60,8 @@ Length is 6 bytes.
 | 0 | `uint24` | Start Channel |
 | 3 | `uint24` | End Channel Offset |
 
+A `Sparse Range` is a channel range, defined by its starting channel and the range count. Channel indexes start at 0.
+
 ##### Example
 To denote channels 16-32, `Start Channel` would have a value of 15 (16 - 1 since channel indexes start at 0) and an `End Channel Offset` of 16 (32 - 16 = 16).
 
@@ -78,11 +80,14 @@ While effectively useless, the [fpp](https://github.com/FalconChristmas/fpp) imp
 | Bytes | Code | Name | Description |
 | --- | --- | --- | --- |
 | `[0x6D, 0x66]` | `mf` | Media File | File path of the audio to play |
-| `[0x73, 0x70]` | `sp` | Sequencing Program | Identifies the program used to create the sequence |
+| `[0x73, 0x70]` | `sp` | Sequence Producer | Identifies the program used to create the sequence |
 
-xLights sample 
+These (2) variable codes are currently the only codes referenced by the [fpp](https://github.com/FalconChristmas/fpp) & [xLights](https://github.com/smeighan/xLights) implementations. However, there is no validation that prevents third-party software or users from defining and using their own codes. The caveat being that they may clash with future additions given the limited namespace availability.
 
-##### Example
+##### Data Sample
+xLights `sp` ("Sequence Producer") data sample: `xLights Macintosh 2019.22`
+
+##### Encoding Example
 The variable `mf` (Media File) with a value of "xy" would be encoded in 6 bytes.
 
 | Bytes | Description |
@@ -94,3 +99,4 @@ The variable `mf` (Media File) with a value of "xy" would be encoded in 6 bytes.
 ## Reference Implementations
 * [fpp](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp) is a C++ implementation of the FSEQ file format. It is the project which also originated the file format and maintains it.
 * [xLights](https://github.com/smeighan/xLights/blob/master/xLights/FSEQFile.cpp) is a C++ sequencing program which uses the FSEQ file format. However, its implementation is a copy/paste of the fpp code and provides no additional context.
+* [go-fseq](https://github.com/Cryptkeeper/go-fseq) is a Go library implemented given this documentation.
