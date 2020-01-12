@@ -38,9 +38,9 @@ Variable length, determined by `Header->Channel Data Offset` - length of `Header
 | `[]Sparse Range` | `Header->Sparse Range Count` |
 | `[]Variable`| None |
 
-When reading the `[]Variable` data, a software implementation should instead continue to read as long as there is at least 4 bytes free between the current reader index and `Header->Channel Data Offset`. See the [fpp](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L425) code for more context.
+When reading the `[]Variable` data, a software implementation should instead continue to read as long as there is at least 4 bytes free between the current reader index and `Header->Channel Data Offset`. See the [fpp](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L425) source code for more context.
 
-If (after reading all fields) the current reader index is less than the `Header->Channel Data Offset` value, it should seek forward (up to 4 bytes) to `Header->Channel Data Offset`. A difference of more than 4 bytes likely denotes a decoding error in your implementation. See the [fpp](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1458-L1462) code for more context.
+If (after reading all fields) the current reader index is less than the `Header->Channel Data Offset` value, it should seek forward (up to 4 bytes) to `Header->Channel Data Offset`. A difference of more than 4 bytes likely denotes a decoding error in your implementation. See the [fpp](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1458-L1462) source code for more context.
 
 Both of these implementation details appear to stem from the [rounding behavior](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1433) for the `Channel Data Offset`.
 
@@ -74,7 +74,7 @@ Variable length, at least 4 bytes.
 | 2 | `[2]uint8` | Code | Two character string name |
 | 4 | `[Data Length - 4]uint8` | Data | Typically used as a string |
 
-While effectively useless, the [fpp](https://github.com/FalconChristmas/fpp) implementation seems to support zero length variables. However when reading it skips forward 4 bytes, ignoring the code field and resulting in a variable named "NULNUL" (`[0x00, 0x00]`).
+While effectively useless, the [fpp](https://github.com/FalconChristmas/fpp) implementation seems to support zero length variables. However when reading it skips forward 4 bytes, ignoring the `Code` field and resulting in a variable named "NULNUL" (`[0x00, 0x00]`).
 
 ##### Common Variable Codes
 | Bytes | Code | Name | Description |
@@ -101,7 +101,7 @@ The following describes _uncompressed_ channel data. Compressed channel data fol
 
 Variable length, `Header->Channel Count` * `Header->Frame Count` bytes. 
 
-Each byte represents the channel state for its given index (remember to apply its corresponding `Sparse Range->Start Channel` offset).
+Each byte represents the channel state for its given index (remember to apply its corresponding `Sparse Range->Start Channel` offset, if applicable).
 
 `Channel Data` starts at `Header->Channel Data Offset` and continues to the end of the file. A software implementation may easily validate a file by ensuring that `Header->Channel Data Offset` + `Header->Channel Count` * `Header->Frame Count` matches the full byte length of the file.
 
@@ -124,5 +124,5 @@ A controller with 4 channels (indexes 0-3) would have its data encoded as `[4]ui
 
 ## Reference Implementations
 * [fpp](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp) is a C++ implementation of the FSEQ file format. It is the project which also originated the file format and maintains it.
-* [xLights](https://github.com/smeighan/xLights/blob/master/xLights/FSEQFile.cpp) is a C++ sequencing program which uses the FSEQ file format. However, its implementation is a copy/paste of the fpp code and provides no additional context.
+* [xLights](https://github.com/smeighan/xLights/blob/master/xLights/FSEQFile.cpp) is a C++ sequencing program which uses the FSEQ file format. However, its implementation is a copy/paste of the fpp source code and provides no additional context.
 * [go-fseq](https://github.com/Cryptkeeper/go-fseq) is a Go library implemented given this documentation.
