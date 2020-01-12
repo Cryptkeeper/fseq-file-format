@@ -29,7 +29,7 @@ Length is 32 bytes.
 | 23 | `uint8` | | (Reserved for future use) |
 | 24 | `uint64` | Unique ID | Implemented as the creation time in microseconds |
 
-### Data
+### Data Tables
 Variable length, determined by `Header->Channel Data Offset` - length of `Header` (32 bytes).
 
 | Data Type | Corresponding Count Field |
@@ -95,6 +95,32 @@ The variable `mf` (Media File) with a value of "xy" would be encoded in 6 bytes.
 | `[0x00, 0x06]` | 6 byte length (2 bytes of data + 4 byte header) |
 | `[0x6D, 0x66]` | 2 byte code (`mf`) |
 | `[0x78, 0x79]` | 2 bytes of data ("xy") |
+
+### Channel Data
+The following describes _uncompressed_ channel data. Compressed channel data follows the same format, however it is split across compression blocks (with up to 255 compression blocks) which each contain several frames.
+
+Variable length, `Header->Channel Count` * `Header->Frame Count` bytes. 
+
+Each byte represents the channel state for its given index (remember to apply its corresponding `Sparse Range->Start Channel` offset).
+
+`Channel Data` starts at `Header->Channel Data Offset` and continues to the end of the file. A software implementation may easily validate a file by ensuring that `Header->Channel Data Offset` + `Header->Channel Count` * `Header->Frame Count` matches the full byte length of the file.
+
+#### Seeking
+A software implementation can seek to a specific frame by taking the product of the frame index and the length of each frame.
+
+```
+var targetFrameIndex = 9 // Frame #10
+var absoluteSeek = Header->Channel Data Offset // Skip the header and data tables
+absoluteSeek += targetFrameIndex * Header->Channel Count
+```
+
+#### Encoding Example
+A controller with 4 channels (indexes 0-3) would have its data encoded as `[4]uint8` _per frame_. Given a sequence with 10 total frames, the channel data length would be 40 bytes. How that data is interpreted is controlled by the controller's corresponding [channeloutput](https://github.com/FalconChristmas/fpp/tree/master/src/channeloutput) class. For example, the [Light-O-Rama channeloutput](https://github.com/FalconChristmas/fpp/blob/master/src/channeloutput/LOR.cpp#L243), and many others, interpret the `uint8` as a brightness level (with RGB simply using a channel per color).
+
+## Odds & Ends
+- The first compression block will only contain 10 frames. Comments within the [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1129) indicates this is done to ensure the program can started quicker.
+- Even when the full sequence is compressed, the first frame is excluded ([depending on the zlib version](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1086)).
+- [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L774) attempts to allocate 64KB compression blocks. However instead of `64 * 1024`, it uses `64 * 2014` which allocates 125.8KB compression blocks. While this may be a typo, it enables compressed channel data to be up to 31.3MB in length.
 
 ## Reference Implementations
 * [fpp](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp) is a C++ implementation of the FSEQ file format. It is the project which also originated the file format and maintains it.
