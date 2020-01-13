@@ -97,7 +97,7 @@ The variable `mf` (Media File) with a value of "xy" would be encoded in 6 bytes.
 | `[0x78, 0x79]` | 2 bytes of data ("xy") |
 
 ### Compressed Channel Data
-For compressed FSEQ files, the channel data is written normally as uncompressed channel data, and then split into fixed-size chunk allocations which are then individually compressed (with up to 255 of these chunks per file). This enables software implementations to decompress chunks of the file in (near) real time without buffering the full file length.
+For compressed FSEQ files, the channel data is written normally as uncompressed channel data, and then split into fixed-size chunk allocations which are then individually compressed (with up to 255 of these chunks per file). This enables software implementations to decompress chunks of the file without buffering the full file length.
 
 #### Odds & Ends
 - The first `Compression Block` will only contain 10 frames. Comments within the [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1129) indicates this is done to ensure the program can be started quicker.
@@ -105,7 +105,7 @@ For compressed FSEQ files, the channel data is written normally as uncompressed 
 - [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L774) attempts to allocate 64KB compression blocks. However instead of `64 * 1024`, it uses `64 * 2014` which allocates 125.8KB compression blocks. While this may be a typo, it enables compressed channel data to be up to 31.3MB in length.
 
 #### Encoding Example
-A compressed (with `Compression Type` = 1/zstd) file with a length of 50,454 bytes reports a `Compression Block Count` of 4. A software implementation should begin by reading the `Compression Block` structure values that follow the 32 byte `Header`.
+A compressed file (in this example, with `Compression Type` = 1/zstd) with a length of 50,454 bytes reports a `Compression Block Count` of 4. A software implementation should begin by reading the `Compression Block` values that follow the 32 byte `Header`.
 
 ```
 Block #0
