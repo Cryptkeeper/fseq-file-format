@@ -24,7 +24,7 @@ Length is 32 bytes.
 | 18 | `uint8` | Step Time | Timing interval in milliseconds |
 | 19 | `uint8` | Flags | Unused by the [fpp](https://github.com/FalconChristmas/fpp) & [xLights](https://github.com/smeighan/xLights) implementations |
 | 20 | `uint8` | Compression Type | 0 = none, 1 = [zstd](https://github.com/facebook/zstd), 2 = [zlib](https://www.zlib.net/) |
-| 21 | `uint8` | Frame Block Count | Ignored if `Compression Type` = 0 |
+| 21 | `uint8` | Compression Block Count | Ignored if `Compression Type` = 0 |
 | 22 | `uint8` | Sparse Range Count | |
 | 23 | `uint8` | | (Reserved for future use) |
 | 24 | `uint64` | Unique ID | Implemented as the creation time in microseconds |
@@ -34,7 +34,7 @@ Variable length, determined by `Header->Channel Data Offset` - length of `Header
 
 | Data Type | Corresponding Count Field |
 | --- | --- |
-| `[]Frame Block` | `Header->Frame Block Count` |
+| `[]Compression Block` | `Header->Compression Block Count` |
 | `[]Sparse Range` | `Header->Sparse Range Count` |
 | `[]Variable`| None |
 
@@ -44,13 +44,13 @@ If (after reading all fields) the current reader index is less than the `Header-
 
 Both of these implementation details appear to stem from the [rounding behavior](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1433) for the `Channel Data Offset`.
 
-#### Frame Block
+#### Compression Block
 Length is 8 bytes.
 
 | Byte Index | Data Type | Field Name | Notes |
 | --- | --- | --- | --- |
-| 0 | `uint32` | Frame | |
-| 4 | `uint32` | Length | |
+| 0 | `uint32` | First Frame Number | Index of the first frame encoded in the block |
+| 4 | `uint32` | Length | Length in bytes of the compressed block |
 
 #### Sparse Range
 Length is 6 bytes.
@@ -96,14 +96,65 @@ The variable `mf` (Media File) with a value of "xy" would be encoded in 6 bytes.
 | `[0x6D, 0x66]` | 2 byte code (`mf`) |
 | `[0x78, 0x79]` | 2 bytes of data ("xy") |
 
-### Channel Data
-The following describes _uncompressed_ channel data. Compressed channel data follows the same format, however it is split across compression blocks (with up to 255 compression blocks) which each contain several frames.
+### Compressed Channel Data
+For compressed FSEQ files, the channel data is written normally as uncompressed channel data, and then split into fixed-size chunk allocations which are then individually compressed (with up to 255 of these chunks per file). This enables software implementations to decompress chunks of the file in (near) real time without buffering the full file length.
 
+#### Odds & Ends
+- The first `Compression Block` will only contain 10 frames. Comments within the [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1129) indicates this is done to ensure the program can be started quicker.
+- Even when the full sequence is compressed, the first frame is excluded ([depending on the zlib version](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1086)).
+- [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L774) attempts to allocate 64KB compression blocks. However instead of `64 * 1024`, it uses `64 * 2014` which allocates 125.8KB compression blocks. While this may be a typo, it enables compressed channel data to be up to 31.3MB in length.
+
+#### Encoding Example
+A compressed (with `Compression Type` = 1/zstd) file with a length of 50,454 bytes reports a `Compression Block Count` of 4. A software implementation should begin by reading the `Compression Block` structure values that follow the 32 byte `Header`.
+
+```
+Block #0
+First Frame Number: 0
+Length: 18
+
+Block #1
+First Frame Number: 10
+Length: 50268
+
+Block #2
+First Frame Number: 0
+Length: 0
+
+Block #3
+First Frame Number: 0
+Length: 0
+```
+
+The [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1508) immediately discards any `Compression Block` values with a length of 0 (they appear to be a product of memory alignment), leaving us with the initial 2 values.
+
+The start address (relative to `Header->Channel Data Offset`) of each `Compression Block` can be calculated by summing the `Length` value of all previous `Compression Block` values. The end address can be calculated by adding the `Length` value to the previously calculated start address.
+
+```
+Block #0
+First Frame Number: 0
+Length: 18
+Relative Start Address: 0
+Relative End Address: 18
+
+Block #1
+First Frame Number: 10
+Length: 50268
+Relative Start Addressing: 18
+Relative End Address: 50286
+
+(Blocks #2 & #3 ignored due to Length = 0)
+```
+
+To help validate software implementations, the end address of the last `Compression Block` + `Header->Channel Data Offset` should match the byte length of the file.
+
+If no `Compression Block` values were read, the [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1522) will consider the file corrupted. It will attempt to recover the file by inserting a `Compression Block` with a `First Frame Number` value of 0 and a `Length` value of the file's byte length - `Header->Channel Data Offset`.
+
+### Uncompressed Channel Data
 Variable length, `Header->Channel Count` * `Header->Frame Count` bytes. 
 
-Each byte represents the channel state for its given index (remember to apply its corresponding `Sparse Range->Start Channel` offset, if applicable).
+For each frame between [0, `Header->Frame Count`) a software implementation should read a  `[Header->Channel Count]uint8` array. Each `uint8` within this array represents the channel state for its given index. If applicable, remember to apply its corresponding `Sparse Range->Start Channel` offset.
 
-`Channel Data` starts at `Header->Channel Data Offset` and continues to the end of the file. A software implementation may easily validate a file by ensuring that `Header->Channel Data Offset` + `Header->Channel Count` * `Header->Frame Count` matches the full byte length of the file.
+Uncompressed channel data starts at `Header->Channel Data Offset` and continues to the end of the file. A software implementation may easily validate the file by ensuring that `Header->Channel Data Offset` + `Header->Channel Count` * `Header->Frame Count` matches the full byte length of the file.
 
 #### Seeking
 A software implementation can seek to a specific frame by taking the product of the frame index and the length of each frame.
@@ -116,11 +167,6 @@ absoluteSeek += targetFrameIndex * Header->Channel Count
 
 #### Encoding Example
 A controller with 4 channels (indexes 0-3) would have its data encoded as `[4]uint8` _per frame_. Given a sequence with 10 total frames, the channel data length would be 40 bytes. How that data is interpreted is controlled by the controller's corresponding [channeloutput](https://github.com/FalconChristmas/fpp/tree/master/src/channeloutput) class. For example, the [Light-O-Rama channeloutput](https://github.com/FalconChristmas/fpp/blob/master/src/channeloutput/LOR.cpp#L243), and many others, interpret the `uint8` as a brightness level (with RGB simply using a channel per color).
-
-## Odds & Ends
-- The first compression block will only contain 10 frames. Comments within the [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1129) indicates this is done to ensure the program can started quicker.
-- Even when the full sequence is compressed, the first frame is excluded ([depending on the zlib version](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1086)).
-- [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L774) attempts to allocate 64KB compression blocks. However instead of `64 * 1024`, it uses `64 * 2014` which allocates 125.8KB compression blocks. While this may be a typo, it enables compressed channel data to be up to 31.3MB in length.
 
 ## Reference Implementations
 * [fpp](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp) is a C++ implementation of the FSEQ file format. It is the project which also originated the file format and maintains it.
