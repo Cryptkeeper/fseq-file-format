@@ -1,5 +1,5 @@
 # FSEQ File Format
-A work-in-progress, third-party reverse engineering of the *version 2* FSEQ (`.fseq`) "Falcon sequence" file format, derived from the [Falcon Player](https://github.com/FalconChristmas/fpp) ("fpp") software implementation and its usage in [xLights](https://github.com/smeighan/xLights). FSEQ is a time series file format used to describe channel output states, typically for controlling lighting equipment.
+A third-party reverse engineering of the *version 2* FSEQ (`.fseq`) "Falcon sequence" file format, derived from the [Falcon Player](https://github.com/FalconChristmas/fpp) ("fpp") software implementation and its usage in [xLights](https://github.com/smeighan/xLights). FSEQ is a time series file format used to describe channel output states, typically for controlling lighting equipment.
 
 Some first-party documentation (while sparse) concerning the file format, as well as its sister format [ESEQ](https://github.com/FalconChristmas/fpp/blob/master/docs/ESEQ_Effect_Sequence_file_format.txt), is available in the [fpp repository](https://github.com/FalconChristmas/fpp/blob/master/docs/FSEQ_Sequence_File_Format.txt).
 
@@ -102,7 +102,7 @@ For compressed FSEQ files, the channel data is written normally as uncompressed 
 #### Odds & Ends
 - The first `Compression Block` will only contain 10 frames. Comments within the [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1129) indicates this is done to ensure the program can be started quicker.
 - Even when the full sequence is compressed, the first frame is excluded ([depending on the zlib version](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1086)).
-- [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L774) attempts to allocate 64KB compression blocks. However instead of `64 * 1024`, it uses `64 * 2014` which allocates 125.8KB compression blocks. While this may be a typo, it enables compressed channel data to be up to 31.3MB in length.
+- [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L781) attempts to allocate 64KB compression blocks. However instead of `64 * 1024`, it uses `64 * 2014` which allocates 125.8KB compression blocks. **Update: This bug has been fixed. This note is preserved for sequences encoded prior to the fix.**
 
 #### Encoding Example
 A compressed file (in this example, with `Compression Type` = 1/zstd) with a length of 50,454 bytes reports a `Compression Block Count` of 4. A software implementation should begin by reading the `Compression Block` values that follow the 32 byte `Header`.
