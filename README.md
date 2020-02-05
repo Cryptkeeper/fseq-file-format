@@ -101,7 +101,8 @@ For compressed FSEQ files, the channel data is written normally as uncompressed 
 
 #### Odds & Ends
 - The first `Compression Block` will only contain 10 frames. Comments within the [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1129) indicates this is done to ensure the program can be started quicker.
-- Even when the full sequence is compressed, the first frame is excluded ([depending on the zlib version](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1086)).
+- When compressed using zstd, [fpp](https://github.com/FalconChristmas/fpp) & [xLights](https://github.com/smeighan/xLights/blob/master/xLights/FSEQFile.cpp) do not include the [Zstandard frame header](https://github.com/facebook/zstd/blob/master/doc/zstd_compression_format.md#zstandard-frames).
+- Even when the full sequence is compressed, the first frame is excluded ([depending on the zlib version](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1086)) in their output. Some libraries may require you to provide an explicit content length manually, such as the [zstandard Python library](https://pypi.org/project/zstandard/#id2).
 - [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L781) attempts to allocate 64KB compression blocks. However instead of `64 * 1024`, it uses `64 * 2014` which allocates 125.8KB compression blocks. **Update: This bug has been fixed. This note is preserved for sequences encoded prior to the fix.**
 
 #### Encoding Example
