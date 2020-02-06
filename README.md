@@ -76,6 +76,8 @@ Variable length, at least 4 bytes.
 
 While effectively useless, the [fpp](https://github.com/FalconChristmas/fpp) implementation seems to support zero length variables. However when reading it skips forward 4 bytes, ignoring the `Code` field and resulting in a variable named "NULNUL" (`[0x00, 0x00]`).
 
+The `Data` field may be null terminated depending on the encoding program. If your programming language does not null terminate its strings, your `Data` array should instead be `[Data Length - 4 - 1]uint8`.
+
 ##### Common Variable Codes
 | Bytes | Code | Name | Description |
 | --- | --- | --- | --- |
