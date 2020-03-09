@@ -79,15 +79,24 @@ While effectively useless, the [fpp](https://github.com/FalconChristmas/fpp) imp
 The `Data` field may be null terminated depending on the encoding program. If your programming language does not null terminate its strings, your `Data` array should instead be `[Data Length - 4 - 1]uint8`.
 
 ##### Common Variable Codes
-| Bytes | Code | Name | Description |
-| --- | --- | --- | --- |
-| `[0x6D, 0x66]` | `mf` | Media File | File path of the audio to play |
-| `[0x73, 0x70]` | `sp` | Sequence Producer | Identifies the program used to create the sequence |
+| Bytes | Code | Name | Description | Example |
+| --- | --- | --- | --- | --- |
+| `[0x6D, 0x66]` | `mf` | Media File | File path of the audio to play | `C:\test.mp3` |
+| `[0x73, 0x70]` | `sp` | Sequence Producer | Identifies the program used to create the sequence | `xLights Macintosh 2019.22` |
 
 These (2) variable codes are currently the only codes referenced by the [fpp](https://github.com/FalconChristmas/fpp) & [xLights](https://github.com/smeighan/xLights) implementations. However, there is no validation that prevents third-party software or users from defining and using their own codes. The caveat being that they may clash with future additions given the limited namespace availability.
 
-##### Data Sample
-xLights `sp` ("Sequence Producer") data sample: `xLights Macintosh 2019.22`
+**Author's Note**: Use of the `mf` variable should be discouraged. Encoding the media file path directly into the sequence results in path breaks when moving files, requiring a re-export of the sequence file. As a minor security flaw, `mf` may expose the user's file structure unintentionally when distributing sequences. Software implementations should instead store this in an external configuration, only using the `mf` value if present and valid, as a configuration fallback. 
+
+##### Recommended Variable Codes
+| Bytes | Code | Name | Description |
+| --- | --- | --- | --- |
+| `[0x61, 0x6E]` | `an` | Author Name | Name of the file's author |
+| `[0x61, 0x65]` | `ae` | Author Email | Email address of the file's author |
+| `[0x61, 0x77]` | `aw` | Author Website | Website URL of the file's author |
+| `[0x61, 0x64]` | `ad` | Authorship Date | ISO-8601 compliant date & timestamp of the file's authorship |
+
+These variable codes are not supported by either the [fpp](https://github.com/FalconChristmas/fpp) or the [xLights](https://github.com/smeighan/xLights) implementations, but recommended for new software implementations as a method for optionally storing authorship metadata within the existing file format.
 
 ##### Encoding Example
 The variable `mf` (Media File) with a value of "xy" would be encoded in 6 bytes.
