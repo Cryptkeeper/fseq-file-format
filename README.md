@@ -18,7 +18,7 @@ Length is 32 bytes.
 | 4 | `uint16` | Channel Data Offset | Byte index of the channel data portion of the file |
 | 6 | `uint8` | Minor Version | Currently `0x00` |
 | 7 | `uint8` | Major Version | Currently `0x02` |
-| 8 | `uint16` | Header Length | Length of the header (32 bytes) + `Frame Block Count` * length of a `Frame Block` (8 bytes) |
+| 8 | `uint16` | Header Length | Address of first variable, length of the header (32 bytes) + `Compression Block Count` * length of a `Compression Block` (8 bytes) + `Sparse Range Count` * length of a `Sparse Range` (12 bytes) |
 | 10 | `uint32` | Channel Count | Sum of `Sparse Range` lengths |
 | 14 | `uint32` | Frame Count | |
 | 18 | `uint8` | Step Time | Timing interval in milliseconds |
