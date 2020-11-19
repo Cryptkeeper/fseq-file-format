@@ -23,8 +23,9 @@ Length is 32 bytes.
 | 14 | `uint32` | Frame Count | |
 | 18 | `uint8` | Step Time | Timing interval in milliseconds |
 | 19 | `uint8` | Flags | Unused by the [fpp](https://github.com/FalconChristmas/fpp) & [xLights](https://github.com/smeighan/xLights) implementations |
-| 20 | `uint8` | Compression Type | 0 = none, 1 = [zstd](https://github.com/facebook/zstd), 2 = [zlib](https://www.zlib.net/) |
-| 21 | `uint8` | Compression Block Count | Ignored if `Compression Type` = 0 |
+| 20 | `uint4` | Compression Block Count | Upper 4 bits, likely 0 |
+| 20 | `uint4` | Compression Type | 0 = none, 1 = [zstd](https://github.com/facebook/zstd), 2 = [zlib](https://www.zlib.net/) |
+| 21 | `uint8` | Compression Block Count | Lower 8 bits, ignored if `Compression Type` = 0 |
 | 22 | `uint8` | Sparse Range Count | |
 | 23 | `uint8` | | (Reserved for future use) |
 | 24 | `uint64` | Unique ID | Implemented as the creation time in microseconds |
@@ -108,7 +109,12 @@ The variable `mf` (Media File) with a value of "xy" would be encoded in 6 bytes.
 | `[0x78, 0x79]` | 2 bytes of data ("xy") |
 
 ### Compressed Channel Data
-For compressed FSEQ files, the channel data is written normally as uncompressed channel data, and then split into fixed-size chunk allocations which are then individually compressed (with up to 255 of these chunks per file). This enables software implementations to decompress chunks of the file without buffering the full file length.
+For compressed FSEQ files, the channel data is written normally as uncompressed channel data, and then split into fixed-size chunk allocations which are then individually compressed (with up to 4095 of these chunks per file). This enables software implementations to decompress chunks of the file without buffering the full file length.
+
+#### Extended Compression Blocks
+The `Compression Block Count` value is split across two seperate fields. [This change](https://github.com/smeighan/xLights/commit/9d09555728f43c863ab24118ba901f4ae45dc3c5#diff-6f85e85fd47664285c3b8811d79aff161ebce060186e33ddea44e1f38f121283R1412) was done to increase the compression block limit (previously, 255) to 4095 without extreme breaking backwards compatability breakage.
+
+`Compression Block Count` should be treated as a `uint16` value, however only the lower 12 bits are used. The upper 4 bits (of the lower 12 used bits) is stored as the upper 4 bits of `Compression Type`. As such, it is important when interpreting the `Compression Type` field to AND it against `0xF` to ignore the upper 4 bits. The lower 8 bits as stored within the pre-existing `Compression Block Count` field.
 
 #### Odds & Ends
 - The first `Compression Block` will only contain 10 frames. Comments within the [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1129) indicates this is done to ensure the program can be started quicker.
