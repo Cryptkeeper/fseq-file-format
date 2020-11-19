@@ -112,9 +112,21 @@ The variable `mf` (Media File) with a value of "xy" would be encoded in 6 bytes.
 For compressed FSEQ files, the channel data is written normally as uncompressed channel data, and then split into fixed-size chunk allocations which are then individually compressed (with up to 4095 of these chunks per file). This enables software implementations to decompress chunks of the file without buffering the full file length.
 
 #### Extended Compression Blocks
-The `Compression Block Count` value is split across two seperate fields. [This change](https://github.com/smeighan/xLights/commit/9d09555728f43c863ab24118ba901f4ae45dc3c5#diff-6f85e85fd47664285c3b8811d79aff161ebce060186e33ddea44e1f38f121283R1412) was done to increase the compression block limit (previously, 255) to 4095 without extreme breaking backwards compatability breakage.
+The `Compression Block Count` value is split across two seperate fields. [This change](https://github.com/smeighan/xLights/commit/9d09555728f43c863ab24118ba901f4ae45dc3c5#diff-6f85e85fd47664285c3b8811d79aff161ebce060186e33ddea44e1f38f121283R1412) was done to increase the compression block limit (previously, 255) to 4095 without extreme breakage in backwards compatability.
 
-`Compression Block Count` should be treated as a `uint16` value, however only the lower 12 bits are used. The upper 4 bits (of the lower 12 used bits) is stored as the upper 4 bits of `Compression Type`. As such, it is important when interpreting the `Compression Type` field to AND it against `0xF` to ignore the upper 4 bits. The lower 8 bits as stored within the pre-existing `Compression Block Count` field.
+`Compression Block Count` should be treated as a `uint16` value, however only the lower 12 bits are used. The upper 4 bits (of the lower 12 used bits) is stored as the upper 4 bits of `Compression Type`. As such, it is important when interpreting the `Compression Type` field to AND it against `0xF` to ignore the upper 4 bits. The lower 8 bits are stored within the pre-existing `Compression Block Count` field.
+
+##### Code Examples
+```
+// Decode by ORing the upper 4 bits of the compressionType value against the lower 8 bits of the compressionBlockCount
+uint16_t extendedCompressionBlockCount = (compressionType & 0xF0) | compressionBlockCount;
+```
+
+```
+// Encode by ORing the upper 4 bits of extendedCompressionBlock count against compressionType
+compressionType |= extendedCompressionBlockCount & 0xF0;
+compressionBlockCount = extendedCompressionBlockCount & 0xF;
+```
 
 #### Odds & Ends
 - The first `Compression Block` will only contain 10 frames. Comments within the [fpp source code](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp#L1129) indicates this is done to ensure the program can be started quicker.
