@@ -16,7 +16,7 @@ Length is 32 bytes.
 | --- | --- | --- | --- |
 | 0 | `[4]uint8` | Identifier | Always `PSEQ` (older encodings may contain `FSEQ`) |
 | 4 | `uint16` | Channel Data Offset | Byte index of the channel data portion of the file |
-| 6 | `uint8` | Minor Version | Currently `0x00` |
+| 6 | `uint8` | Minor Version | Normally `0x00`, optionally `0x01` is required to enable support for [Extended Compression Blocks](#extended-compression-blocks) (see [xLights@e33c065](https://github.com/smeighan/xLights/commit/e33c0651aa6886d2ab10c04cb83ef1d1fdd25062)) |
 | 7 | `uint8` | Major Version | Currently `0x02` |
 | 8 | `uint16` | Header Length | Address of first variable, length of the header (32 bytes) + `Compression Block Count` * length of a `Compression Block` (8 bytes) + `Sparse Range Count` * length of a `Sparse Range` (12 bytes) |
 | 10 | `uint32` | Channel Count | Sum of `Sparse Range` lengths |
