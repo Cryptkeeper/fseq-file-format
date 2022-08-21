@@ -119,7 +119,19 @@ The `Compression Block Count` value is split across two seperate fields. [This c
 ##### Code Examples
 ```
 // Decode by ORing the upper 4 bits of the compressionType value against the lower 8 bits of the compressionBlockCount
-uint16_t extendedCompressionBlockCount = (compressionType & 0xF0) | compressionBlockCount;
+//
+//   +-> unused highest 4 bits,
+//   |   set to zero
+//   |
+// +------------------+
+// |0000|    |        +--> original 8 bit
+// +------------------+    `compressionBlockCount`
+//         |
+//         |
+//         +-> upper 4 bits of
+//             `compressionType`
+//
+uint16_t extendedCompressionBlockCount = ((compressionType & 0xF0) << 4) | compressionBlockCount;
 ```
 
 ```
