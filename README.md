@@ -118,7 +118,8 @@ The `Compression Block Count` value is split across two seperate fields. [This c
 
 ##### Code Examples
 ```
-// Decode by ORing the upper 4 bits of the compressionType value against the lower 8 bits of the compressionBlockCount
+// Prefix the 8-bit compressionBlockCount field with the upper 4 bits of compressionType as a 12-bit int within a uint16_t,
+//  this 4 highest order bits will remain zero
 //
 //   +-> unused highest 4 bits,
 //   |   set to zero
@@ -135,9 +136,9 @@ uint16_t extendedCompressionBlockCount = ((compressionType & 0xF0) << 4) | compr
 ```
 
 ```
-// Encode by ORing the upper 4 bits of extendedCompressionBlock count against compressionType
-compressionType |= extendedCompressionBlockCount & 0xF0;
-compressionBlockCount = extendedCompressionBlockCount & 0xF;
+// Strip the 4-bit prefix and re-align it with the 4-bit compressionType, encode the remaining 8 bits as the compressionBlockCount
+uint8_t encodedCompressionType = ((extendedCompressionBlockCount & 0x0F00) >> 4) | (compressionType & 0xF);
+uint8_t encodedCompressionBlockCount = extendedCompressionBlockCount & 0x00FF;
 ```
 
 #### Odds & Ends
