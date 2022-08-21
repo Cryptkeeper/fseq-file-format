@@ -114,7 +114,7 @@ For compressed FSEQ files, the channel data is written normally as uncompressed 
 #### Extended Compression Blocks
 The `Compression Block Count` value is split across two seperate fields. [This change](https://github.com/smeighan/xLights/commit/9d09555728f43c863ab24118ba901f4ae45dc3c5#diff-6f85e85fd47664285c3b8811d79aff161ebce060186e33ddea44e1f38f121283R1412) was done to increase the compression block limit to 4095 (previously 255) without extreme breakage in backwards compatability. Although the current minor version is `0x00`, a minor version greater than or equal to `0x01` is required to enable support within xLights. See [xLights@e33c065](https://github.com/smeighan/xLights/commit/e33c0651aa6886d2ab10c04cb83ef1d1fdd25062).
 
-`Compression Block Count` should be treated as a `uint16` value, however only the lower 12 bits are used. The upper 4 bits (of the lower 12 used bits) is stored as the upper 4 bits of `Compression Type`. As such, it is important when interpreting the `Compression Type` field to AND it against `0xF` to ignore the upper 4 bits. The lower 8 bits are stored within the pre-existing `Compression Block Count` field.
+`Compression Block Count` should be treated as a `uint16` value, however only the lower 12 bits are used. The upper 4 bits (of the lower 12 used bits) are stored as the upper 4 bits of `Compression Type` (the "extended" compression block count). As such, it is important when working with the `Compression Type` field to ignore the lower 4 bits (which store the compression type enum value) and shift the upper 4 bits to index 0. The lower 8 bits are stored within the pre-existing `Compression Block Count` field.
 
 ##### Code Examples
 ```
