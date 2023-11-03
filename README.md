@@ -8,6 +8,27 @@ Given the reverse engineered nature, this documentation should be considered inc
 ## Encoding
 FSEQ files are encoded in [little-endian](https://en.wikipedia.org/wiki/Endianness) format.
 
+## Diagram
+```
+                            ┌────────────────┬────────────────┬────────────────┬────────────────┐
+                            │'P'         0x50│'S'         0x53│'E'         0x45│'Q'         0x51│
+                            ├────────────────┴────────────────┼────────────────┼────────────────┤
+                            │Channel Data Offset        uint16│Minor Version   │Major Version  2│
+┌────────────────────────┐  ├─────────────────────────────────┼────────────────┴────────────────┤
+│Extended Compression    │  │Variable Data Offset       uint16│Channel Count              uint32
+│Block Count (v2.1) uint4│  ├─────────────────────────────────┼─────────────────────────────────┤
+├────────────────────────┤   Channel Count (contd)      uint32│Frame Count                uint32
+│Compression Type   uint4│  ├─────────────────────────────────┼────────────────┬────────────────┤
+└────────────────────────┘   Frame Count (contd)        uint32│Step Time Ms.   │Flags (unused)  │
+             │              ├────────┬───────┬────────────────┼────────────────┼────────────────┤
+             └─────────────▶│ECBC    │CT     │Compr. Block Cnt│Sparse Range Cnt│Reserved        │
+                            ├────────┴───────┴────────────────┴────────────────┴────────────────┤
+                            │Unique ID/Creation Time Microseconds                         uint64
+                            ├───────────────────────────────────────────────────────────────────┤
+                             Unique ID/Creation Time Microseconds (contd)                 uint64│
+                            └───────────────────────────────────────────────────────────────────┘
+```
+
 ## Structure
 ### Header
 Length is 32 bytes.
@@ -214,4 +235,4 @@ A controller with 4 channels (indexes 0-3) would have its data encoded as `[4]ui
 ## Reference Implementations
 * [fpp](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp) is a C++ implementation of the FSEQ file format. It is the project which also originated the file format and maintains it.
 * [xLights](https://github.com/smeighan/xLights/blob/master/xLights/FSEQFile.cpp) is a C++ sequencing program which uses the FSEQ file format. However, its implementation is a copy/paste of the fpp source code and provides no additional context.
-* [go-fseq](https://github.com/Cryptkeeper/go-fseq) is a Go library implemented given this documentation.
+* [libtinyfseq](https://github.com/Cryptkeeper/libtinyfseq) is a header-only C library for decoding fseq files.
