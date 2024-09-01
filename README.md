@@ -236,3 +236,4 @@ A controller with 4 channels (indexes 0-3) would have its data encoded as `[4]ui
 * [fpp](https://github.com/FalconChristmas/fpp/blob/master/src/fseq/FSEQFile.cpp) is a C++ implementation of the FSEQ file format. It is the project which also originated the file format and maintains it.
 * [xLights](https://github.com/smeighan/xLights/blob/master/xLights/FSEQFile.cpp) is a C++ sequencing program which uses the FSEQ file format. However, its implementation is a copy/paste of the fpp source code and provides no additional context.
 * [libtinyfseq](https://github.com/Cryptkeeper/libtinyfseq) is a header-only C library for decoding fseq files.
+* [fplayer](https://github.com/Cryptkeeper/fplayer) is a FSEQ file player for LOR hardware.
